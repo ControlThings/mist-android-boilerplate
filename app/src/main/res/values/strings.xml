@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Mist Boilerplate</string>
+    <string name="edit_identity">Enter a user identity</string>
+    <string name="button_add_identity">Save</string>
 </resources>
