@@ -8,6 +8,9 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import java.util.List;
+
+
 import addon.AddonReceiver;
 import mist.api.Service;
 import wish.request.Identity;
@@ -34,6 +37,7 @@ public class MainActivity extends AppCompatActivity implements AddonReceiver.Rec
                 startService(mistService);
             }
         }
+
     }
 
     @Override
@@ -41,6 +45,7 @@ public class MainActivity extends AppCompatActivity implements AddonReceiver.Rec
         synchronized (this) {
             mistRunning = true;
         }
+        identityList();
     }
 
 
@@ -51,11 +56,25 @@ public class MainActivity extends AppCompatActivity implements AddonReceiver.Rec
         }
     }
 
+    private void identityList() {
+        wish.request.Identity.list(new Identity.ListCb() {
+            @Override
+            public void cb(List<wish.Identity> list) {
+                for (wish.Identity identity : list) {
+                    if (identity.isPrivkey()) {
+                        openAuthActivity(identity);
+                        break;
+                    }
+                }
+            }
+        });
+    }
+
     private void identityCreate(String identityString) {
         wish.request.Identity.create(identityString, new Identity.CreateCb() {
             @Override
             public void cb(wish.Identity identity) {
-                Log.d(TAG, "identity alias: " + identity.getAlias() );
+                openAuthActivity(identity);
             }
         });
     }
@@ -69,10 +88,16 @@ public class MainActivity extends AppCompatActivity implements AddonReceiver.Rec
             return;
         }
         if (!mistRunning) {
-            Toast.makeText(this, "The Mist service is not runing", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "The Mist service is not running", Toast.LENGTH_SHORT).show();
             return;
         }
         identityCreate(identity);
+    }
+
+    private void openAuthActivity(wish.Identity identity) {
+        Intent intent = new Intent(this, AuthActivity.class);
+        intent.putExtra(USER_IDENTITY, identity);
+        startActivity(intent);
     }
 
     @Override
