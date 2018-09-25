@@ -1,13 +1,13 @@
-#Mist android boilerplate
+# Mist android boilerplate
 This is a empty android boilerpalete to start a mist android project. 
 
 ## Licenses
 
 The example code is licensed under Apache 2.0. For the example code to be useful, you will need to have the MistApi aar libraries from ControlThings. These libraries require a valid license from ControlThings Oy Ab so that they can be used.
 
-#Getting Started
+# Getting Started
 
-##Prerequisites
+## Prerequisites
 
 * [Android studio](https://developer.android.com/studio/) 
 * Credentials to Controlthings artifactory server
@@ -23,13 +23,13 @@ integrator_username=YOUR_USERNAME
 integrator_password=YOUR_PASSWORD
 ```
 
-##Running
+## Running
 
 Open the project in android studio and it should be ready to go.
 
 The example application does nothing else but starts Mist service, and queries Wish and Mist versions.
 
-#How to use MistApi in existing projects
+# How to use MistApi in existing projects
  
 ##Configure Gradle
  
@@ -57,7 +57,7 @@ dependencies {
 }
 ```
 
-##Use of ProcessLifecycle
+## Use of ProcessLifecycle
 
 The Mist IoT library is built on Wish, which is a software platform for distributed systems. Wish is the  responsible for opening and maintaining secure authenticated connections between the communicating peers. In Wish/Mist, the connections between peers are not request/response oriented, as in HTTP. Instead, the connections between peers are TCP socket connections, which allow for asynchronous communication between the peers. Currently, these connections are automatically managed, and the application programmer does not have to explicitly manage connections. 
 
@@ -97,7 +97,7 @@ class AppLifecycleListener implements LifecycleObserver {
 }
 ```
 
-###Start the Mist service
+### Start the Mist service
 
 On Android, Mist runs on a android service and uses an AddonReceiver for connection and disconnection info.
 
