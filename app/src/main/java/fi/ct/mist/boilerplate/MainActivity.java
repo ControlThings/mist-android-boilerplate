@@ -23,6 +23,15 @@ public class MainActivity extends AppCompatActivity implements AddonReceiver.Rec
     Intent mistService;
     private int signalsId;
 
+    /**
+     * This method is called when the Activity is created. For Mist applications, we set up the
+     * system for tracking application state (in foreground, in background). After that we create
+     * the Mist service, instructing that this object's onConnected and onDisconnected methods
+     * should be called when the Mist service starts and stops.
+     * We don't start the service yet, that will be done only when app lifecycle is determined to be "in the foreground".
+     *
+     * @param savedInstanceState
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -37,10 +46,11 @@ public class MainActivity extends AppCompatActivity implements AddonReceiver.Rec
         mistService.putExtra("receiver", mistReceiver);
     }
 
-    //Callback function from mist Service.class
+    /**
+     * This method is called when MistApi is ready to be used.
+     */
     @Override
     public void onConnected() {
-        // mist is connected
 
         //Create a wish signal and listen for "ok" signal to confirm that wish is running.
         signalsId = wish.request.Wish.signals(new Wish.SignalsCb() {
@@ -72,7 +82,10 @@ public class MainActivity extends AppCompatActivity implements AddonReceiver.Rec
         });
     }
 
-    //Callback function from mist Service.class
+    /**
+     * This method is called when MistApi is no longer available. In this function you can for
+     * example reset the application state, but you cannot make any MistApi commands anymore.
+     */
     @Override
     public void onDisconnected() {
         //mist is disconnected
@@ -80,6 +93,10 @@ public class MainActivity extends AppCompatActivity implements AddonReceiver.Rec
 
     class AppLifecycleListener implements LifecycleObserver {
 
+        /**
+         * This function is called when the app moves into the foreground.
+         * You should start the Mist service here, but you should wait for onConnected() to be called, before making any MistApi requests.
+         */
         @OnLifecycleEvent(Lifecycle.Event.ON_START)
         public void onMoveToForeground() {
             // app moved to foreground
@@ -89,11 +106,16 @@ public class MainActivity extends AppCompatActivity implements AddonReceiver.Rec
         }
 
 
+        /**
+         * This function is called when the app no longer is in the foreground.
+         * This is the correct place to unsubscribe from any MistApi events (signals, control.follow...) that you might have registered.
+         * After you have stopped Mist service, you cannot send any MistApi commands anymore.
+         */
         @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
         public void onMoveToBackground() {
             // app moved to background
 
-            //Cancel wish signal
+            /* Cancel the signals request */
             if (signalsId != 0) {
                 wish.request.Wish.cancel(signalsId);
             }
