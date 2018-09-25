@@ -1,6 +1,10 @@
 #Mist android boilerplate
 This is a empty android boilerpalete to start a mist android project. 
 
+## Licenses
+
+The example code is licensed under Apache 2.0. For the example code to be useful, you will need to have the MistApi aar libraries from ControlThings. These libraries require a valid license from ControlThings Oy Ab so that they can be used.
+
 #Getting Started
 
 ##Prerequisites
