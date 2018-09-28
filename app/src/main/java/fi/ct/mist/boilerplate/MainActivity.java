@@ -121,6 +121,11 @@ public class MainActivity extends AppCompatActivity implements AddonReceiver.Rec
     private void openAuthActivity(wish.Identity identity) {
         Intent intent = new Intent(this, AuthActivity.class);
         intent.putExtra(USER_IDENTITY, identity);
+
+        if (signalsId != 0) {
+            wish.request.Wish.cancel(signalsId);
+        }
+        finish();
         startActivity(intent);
     }
 
