@@ -3,4 +3,5 @@
     <string name="edit_identity">Enter a user identity</string>
     <string name="button_add_identity">Save</string>
     <string name="button_remove">Remove from reg Server</string>
+    <string name="button_credit_card">Save</string>
 </resources>

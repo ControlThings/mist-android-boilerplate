@@ -9,14 +9,18 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.braintreepayments.cardform.OnCardFormSubmitListener;
+import com.braintreepayments.cardform.OnCardFormValidListener;
+import com.braintreepayments.cardform.view.CardForm;
+
 import org.bson.BsonDocument;
+import org.bson.BsonString;
 import org.bson.RawBsonDocument;
 
 import java.util.Arrays;
 import java.util.List;
 
 import mist.api.request.Mist;
-import mist.node.MistNode;
 import mist.node.request.Control;
 import wish.Peer;
 import wish.request.Identity;
@@ -27,15 +31,20 @@ public class AuthActivity extends AppCompatActivity {
     private static String TAG = "chargingScenario";
 
     private wish.Identity userIdentity;
-    private String base64Conntact = "zwAAAAVkYXRhAK8AAAAArwAAAAJhbGlhcwAVAAAAUmVnaXN0cmF0aW9uIHNlcnZpY2UABXVpZAAgAAAAAKsbj3tqfPFiDD6piG0SR9O7HDwKR9iydzvC+pufcU56BXB1YmtleQAgAAAAANPEe0YkGFbhdT5fXq6msTEnQkZGBaXBwNGrWiN9tWOuBHRyYW5zcG9ydHMAJwAAAAIwABsAAAB3aXNoOi8vMTkzLjY1LjU0LjEzMTo0MDAwMAAAAAVtZXRhAAUAAAAABQAAAAAA";
+    private String base64Conntact = "yQAAAAVkYXRhAKkAAAAAqQAAAAJhbGlhcwAPAAAASmVwcGUgKGxlbm92bykABXVpZAAgAAAAAJvhFd0KJE2fwMkWKSbD4j7ZZ+Q1OQSSBXS5r9F0RnW+BXB1YmtleQAgAAAAAMQb+Jb5EjnIXUZ+Ci4F5NhiF6nQugYABeUukCUMnkqABHRyYW5zcG9ydHMAJwAAAAIwABsAAAB3aXNoOi8vMTkzLjY1LjU0LjEzMTo0MDAwMAAAAAVtZXRhAAUAAAAABQAAAAAA";
     private BsonDocument bsonConntact;
     private wish.Identity regServerConntact;
     private wish.Identity regServer;
     private wish.Peer regServerPeer;
 
-    private int signalsId;
+    private int wishSignalsId;
+    private int mistSignalsId;
 
+    private CardForm cardForm;
+    private Button cardButton;
     private Button removeButton;
+
+    private String paymentApiVersion = "0.1.0";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,7 +57,9 @@ public class AuthActivity extends AppCompatActivity {
         TextView textView = findViewById(R.id.textView);
         textView.setText(userIdentity.getAlias());
 
-        removeButton =findViewById(R.id.button_remove);
+        cardForm = findViewById(R.id.card_form);
+        cardButton = findViewById(R.id.button_credit_card);
+        removeButton = findViewById(R.id.button_remove);
         parseConntact();
     }
 
@@ -63,7 +74,8 @@ public class AuthActivity extends AppCompatActivity {
         super.onResume();
         removeButton.setVisibility(View.GONE);
         identityList();
-        signals();
+        wishSignals();
+        mistSignals();
     }
 
     private void identityList() {
@@ -76,7 +88,7 @@ public class AuthActivity extends AppCompatActivity {
                     }
                 }
                 if (regServer == null) {
-                    //signals();
+                    //wishSignals();
                     friendRequest();
                 } else {
                     Log.d(TAG, regServer.getAlias() + " is added to list");
@@ -87,17 +99,27 @@ public class AuthActivity extends AppCompatActivity {
         });
     }
 
-    private void signals() {
-        signalsId = wish.request.Wish.signals(new Wish.SignalsCb() {
+    private void wishSignals() {
+        wishSignalsId = wish.request.Wish.signals(new Wish.SignalsCb() {
+
             @Override
             public void cb(String s) {
-                Log.d(TAG, "signals "+ s);
+              //  Log.d(TAG, "wishSignals "+ s);
                 if (s.equals("friendRequesteeAccepted")) {
                     identityList();
                 }
-                if (s.equals("connections") && regServerPeer == null) {
-                    listPeers();
-                }
+            }
+        });
+    }
+
+    private void mistSignals() {
+        mistSignalsId = mist.api.request.Mist.signals(new Mist.SignalsCb() {
+            @Override
+            public void cb(String s, BsonDocument bsonDocument) {
+              // Log.d(TAG, "mist Signals: " + s);
+               if(s.equals("peers") && regServerPeer == null && regServer != null) {
+                   listPeers();
+               }
             }
         });
     }
@@ -121,6 +143,9 @@ public class AuthActivity extends AppCompatActivity {
             @Override
             public void cb(List<Peer> list) {
                 for (Peer peer : list) {
+
+                    Log.d(TAG, "list peers.. "+ peer.toString());
+
                     if (Arrays.equals(peer.getRuid(), regServer.getUid())){
                              Log.d(TAG, "model..");
 
@@ -132,8 +157,9 @@ public class AuthActivity extends AppCompatActivity {
                                       super.cbString(data);
                                       Log.d(TAG, "name " + data);
                                       if(data.equals("Registration service MistApi")) {
-                                               regServerPeer = peer;
-                                                    removeButton();
+                                          regServerPeer = peer;
+                                          removeButton();
+                                          creditCard();
                                       }
                                   }
 
@@ -155,16 +181,71 @@ public class AuthActivity extends AppCompatActivity {
         });
     }
 
+    private void creditCard() {
+        cardForm.cardRequired(true)
+                .expirationRequired(true)
+                .cvvRequired(true)
+                .setup(this);
+        cardForm.setOnCardFormValidListener(new OnCardFormValidListener() {
+            @Override
+            public void onCardFormValid(boolean valid) {
+                Log.d(TAG, "formValid " + valid);
+                if (valid) {
+                    cardButton.setVisibility(View.VISIBLE);
+                } else {
+                    cardButton.setVisibility(View.INVISIBLE);
+                }
+            }
+        });
+        cardButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                BsonDocument payment = new BsonDocument();
+                payment.append("type", new BsonString("creditCard"));
+                payment.append("ccNumber", new BsonString(cardForm.getCardNumber()));
+                payment.append("ccExpiry", new BsonString(cardForm.getExpirationMonth() + '/' + cardForm.getExpirationYear().substring(2,4)));
+                payment.append("ccCvc", new BsonString(cardForm.getCvv()));
+
+                BsonDocument bsonDocument = new BsonDocument();
+                bsonDocument.append("version", new BsonString(paymentApiVersion));
+                bsonDocument.append("payment", payment);
+
+                Log.d(TAG, "cert " + bsonDocument.toJson());
+
+                mist.node.request.Control.invoke(regServerPeer, "getCertificate", bsonDocument ,new Control.InvokeCb() {
+                    @Override
+                    public void cbDocument(BsonDocument value) {
+                        super.cbDocument(value);
+                        Log.d(TAG, "cert cb " + value.toJson());
+                    }
+                });
+
+            }
+        });
+    }
+
     private void removeButton() {
         removeButton.setVisibility(View.VISIBLE);
         removeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mist.node.request.Control.invoke(regServerPeer, "RemoveUser", new Control.InvokeCb() {
+                mist.node.request.Control.invoke(regServerPeer, "removeUser", new Control.InvokeCb() {
                     @Override
                     public void cbBool(boolean value) {
                         super.cbBool(value);
-                        Log.d(TAG, "removed from reg server");
+                        if (value) {
+                            wish.request.Identity.remove(regServer.getUid(), new Identity.RemoveCb() {
+                                @Override
+                                public void cb(boolean b) {
+                                    regServer = null;
+                                    regServerPeer = null;
+                                    removeButton.setVisibility(View.INVISIBLE);
+                                    cardForm.setVisibility(View.INVISIBLE);
+                                    cardButton.setVisibility(View.INVISIBLE);
+                                }
+                            });
+                        }
                     }
                 });
             }
@@ -174,8 +255,11 @@ public class AuthActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (signalsId != 0) {
-            wish.request.Wish.cancel(signalsId);
+        if (wishSignalsId != 0) {
+            wish.request.Wish.cancel(wishSignalsId);
+        }
+        if (mistSignalsId != 0) {
+            mist.api.request.Mist.cancel(mistSignalsId);
         }
     }
 }
