@@ -75,6 +75,7 @@ public class AuthActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_auth);
 
+        /* Step 4: Get user's identity from Extras. Then we set up the UI.  */
         Intent intent = getIntent();
         userIdentity = (wish.Identity) intent.getSerializableExtra(MainActivity.USER_IDENTITY);
 
@@ -96,9 +97,12 @@ public class AuthActivity extends AppCompatActivity {
             }
         });
 
+        /* Step 5: Get the contact information for the registration server */
         regServerBson = getBsonContact(regServerBase64);
         regServerContact = getContact(regServerBson);
 
+        /* Step 5b: Also get the charging server's contact info, this is just because in this app we don't actually get the information from a QR code or similar.
+         *  */
         chargingBson = getBsonContact(chargingBase64);
         chargingContact = getContact(chargingBson);
     }
@@ -113,26 +117,36 @@ public class AuthActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onResume() {
+    protected void onResume() {     /* Step 6: onResume is automatically called by the Android framework. We subscribe to wish and mist signals */
         super.onResume();
         forgetRegServerButton.setVisibility(View.GONE);
         forgetChargingButton.setVisibility(View.GONE);
         omiButton.setVisibility(View.GONE);
-        identityList();
-        wishSignals();
-        mistSignals();
+
         certificate = readCert();
         if(certificate != null) {
             deleteCertButton.setVisibility(View.VISIBLE);
         }
 
+        /* Step 6b: In order to speed up connections, we now ask the WIsh core to open connections to any contacts that is has in its database */
         wish.request.Connection.checkConnections(new Connection.CheckConnectionsCb() {
             @Override
             public void cb(boolean b) {}
         });
+
+        /* Normally we proceed to next step here. */
+        identityList();
+
+        /* We also subscribe to signals (async events) from Wish core and Mist. This will cause other steps to be taken asynchronously, depending on the app state */
+        wishSignals();
+        mistSignals();
     }
 
+
     private void identityList() {
+        /* Step 7: Make identity list, so that we can get hold of the Identity objects of the services that we are going to need later.
+        Note that if we don't have access to regService identity, then we will make a friend request now explicitly. This is what happens the user uses the app for the first time. */
+
         wish.request.Identity.list(new Identity.ListCb() {
             @Override
             public void cb(List<wish.Identity> list) {
@@ -146,7 +160,7 @@ public class AuthActivity extends AppCompatActivity {
                 }
                 if (regServer == null) {
                     //wishSignals();
-                    friendRequest();
+                    friendRequest(); //Proceed to next step, in case user uses app for the first time (registration server was not known). Else when using app later, registration service (and also charging service) will become online later and will be detected in mist signals as 'peers' event, see step 9
                 }
             }
         });
@@ -159,10 +173,12 @@ public class AuthActivity extends AppCompatActivity {
             public void cb(String s) {
               //  Log.d(TAG, "wishSignals "+ s);
                 if (s.equals("friendRequesteeAccepted") ) {
+                    /* Step 8b: Friend request was accepted, ask local wish core to open connections. If we don't do this there could some delay until the wish core opens connection by itself */
                     wish.request.Connection.checkConnections(new Connection.CheckConnectionsCb() {
                         @Override
                         public void cb(boolean b) {}
                     });
+                    /* Do the same thing as in step 7, as we now have access to Reg serice identity. When the regService connection is ready, a 'peers' mist signal is emitted, and the story continues there, as step 9 */
                     identityList();
                 }
             }
@@ -178,6 +194,7 @@ public class AuthActivity extends AppCompatActivity {
             public void cb(String s, BsonDocument bsonDocument) {
               // Log.d(TAG, "mist Signals: " + s);
                if(s.equals("peers")) {
+                   /* Step 9. We have a connection to a mist peer, but we don't know what. We need to list peers to find out what connections we have. */
                    listPeers();
                }
             }
@@ -185,6 +202,8 @@ public class AuthActivity extends AppCompatActivity {
     }
 
     private void friendRequest() {
+        /* Step 8: Send friend request to registration server, friend request is sent to a contact which is hard-coded into the app.
+         * When the friend request is accepted by registration server, we will see friendRequesteeAccepted signal and which is handled in wishSignals, see step 8b */
        wish.request.Identity.friendRequest(userIdentity.getUid(), regServerBson, new Identity.FriendRequestCb() {
            @Override
            public void cb(boolean b) {}
@@ -199,7 +218,7 @@ public class AuthActivity extends AppCompatActivity {
 
 
     private void listPeers() {
-        mist.api.request.Mist.listServices(new Mist.ListServicesCb() {
+        mist.api.request.Mist.listServices(new Mist.ListServicesCb() { // Note: Mist.listServices should be called listPeers. This will be rectified in a later release
             @Override
             public void cb(List<Peer> list) {
                 for (Peer peer : list) {
@@ -215,21 +234,24 @@ public class AuthActivity extends AppCompatActivity {
                                           regServerPeer = peer;
                                           ForgetRegServerButton();
                                           if (certificate == null) {
-                                              creditCard();
+                                              /* Step 10: show credit card input form. Proceed to next step. */
+                                              activateCreditCardForm();
                                           } else {
-                                              ChargingButton();
+                                              /* Step 10b, this is taken if we have the certificate already, in that case user can try to start charging by "reading" a QR code (simulated by push button in this case), go to step 13 */
+                                              activateReadQRCodeButton();
                                           }
                                           if (mistSignalsId != 0) {
                                               mist.api.request.Mist.cancel(mistSignalsId);
                                           }
                                       }else if(data.equals("eu.biotope-project.charging-service") && chargingPeer == null) {
+                                          /* Step 14, the charging service has become online, show the button which allows user to send OMI message, to start charing.  */
                                           chargingPeer = peer;
-                                          ForgetChargingButton();
+                                          activateForgetChargingButton();
                                           chargingButton.setVisibility(View.INVISIBLE);
                                           if (mistSignalsId != 0) {
                                               mist.api.request.Mist.cancel(mistSignalsId);
                                           }
-                                          OmiButton();
+                                          activateOmiButton();
                                       }
                                   }
 
@@ -250,7 +272,7 @@ public class AuthActivity extends AppCompatActivity {
         });
     }
 
-    private void creditCard() {
+    private void activateCreditCardForm() {
         cardForm.cardRequired(true)
                 .expirationRequired(true)
                 .cvvRequired(true)
@@ -266,6 +288,8 @@ public class AuthActivity extends AppCompatActivity {
                 }
             }
         });
+        /* Step 11: When user clicks on "save" on the credit card form, this is called. Note that all the input must be technically valid, to show the input button.
+          * Test with: 4111 1111 1111 1111  */
         cardButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -280,26 +304,33 @@ public class AuthActivity extends AppCompatActivity {
                 bsonDocument.append("version", new BsonString(paymentApiVersion));
                 bsonDocument.append("payment", payment);
 
+                /* Step 12: Send the credit card info to registration server, and when the registration server responds, the cbDocument callback is activated and you get the certificate as parameter */
                 mist.node.request.Control.invoke(regServerPeer, "getCertificate", bsonDocument ,new Control.InvokeCb() {
                     @Override
                     public void cbDocument(BsonDocument value) {
                         super.cbDocument(value);
+
                         certificate = value;
+                        /* Save certificate to disk */
                         saveCert(certificate);
                         cardForm.setVisibility(View.INVISIBLE);
                         cardButton.setVisibility(View.INVISIBLE);
-                        ChargingButton();
+                        activateReadQRCodeButton();
                     }
                 });
             }
         });
     }
 
-    private void ChargingButton() {
+    private void activateReadQRCodeButton() {
         chargingButton.setVisibility(View.VISIBLE);
         chargingButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                /* Step 13: User starts charging by "reading" a QR code (simulated by push button in this case)
+                 The user "reads" QR code, and a friend request is sent to the charging service, with the certificate as a parameter.
+                  (Note that in this case the app has the charging service's contact info hardcoded. In reality the information is obtained from the QR code. )
+                  Next, when the charging service accepts the friend request, the next step is invoked when the charging service becomes online and Mist signal 'peers' is emitted. */
                 mistSignals();
                 wish.request.Identity.friendRequest(userIdentity.getUid(), chargingBson, certificate, new Identity.FriendRequestCb() {
                     @Override
@@ -309,12 +340,13 @@ public class AuthActivity extends AppCompatActivity {
         });
     }
 
-    private void OmiButton() {
+    private void activateOmiButton() {
         omiButton.setVisibility(View.VISIBLE);
         final String omiMsg = "<InfoItem name='ActivateCharging'></InfoItem>";
         omiButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                /* Step 15, the last step. User has pressed on the "send OMI message" button, send the OMI command to the charging service's OMI interface. */
                 mist.node.request.Control.invoke(chargingPeer, "omi", omiMsg, new Control.InvokeCb() {
                     @Override
                     public void cbByte(byte[] value) {
@@ -327,6 +359,7 @@ public class AuthActivity extends AppCompatActivity {
                         if (value) {
                             Toast.makeText(AuthActivity.this, "OMI request successfully sent!",
                                     Toast.LENGTH_LONG).show();
+                            Log.d(TAG, "OMI request successfully sent! ");
                         }
                     }
 
@@ -370,7 +403,7 @@ public class AuthActivity extends AppCompatActivity {
         });
     }
 
-    private void ForgetChargingButton() {
+    private void activateForgetChargingButton() {
         forgetChargingButton.setVisibility(View.VISIBLE);
         forgetChargingButton.setOnClickListener(new View.OnClickListener() {
             @Override

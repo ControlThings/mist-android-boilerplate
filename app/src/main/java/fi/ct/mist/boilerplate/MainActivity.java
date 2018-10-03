@@ -64,7 +64,7 @@ public class MainActivity extends AppCompatActivity implements AddonReceiver.Rec
             @Override
             public void cb(String s) {
                 if (s.equals("ok")) {
-                    identityList();
+                    identityList();     /* Step 1, we have connection to local Wish core. */
                 }
             }
         });
@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity implements AddonReceiver.Rec
             public void cb(List<wish.Identity> list) {
                 for (wish.Identity identity : list) {
                     if (identity.isPrivkey()) {
-                        openAuthActivity(identity);
+                        openAuthActivity(identity); /* Step 2, in case we already had an identity */
                         break;
                     }
                 }
@@ -116,7 +116,7 @@ public class MainActivity extends AppCompatActivity implements AddonReceiver.Rec
             Toast.makeText(this, "The Mist service is not running", Toast.LENGTH_SHORT).show();
             return;
         }
-        identityCreate(identity);
+        identityCreate(identity); /* Step 2, in case we start from a clean table, the user has written his/her name in the text field and pressed OK */
     }
 
     private void openAuthActivity(wish.Identity identity) {
@@ -124,10 +124,11 @@ public class MainActivity extends AppCompatActivity implements AddonReceiver.Rec
         intent.putExtra(USER_IDENTITY, identity);
 
         if (signalsId != 0) {
-            wish.request.Wish.cancel(signalsId);
+            wish.request.Wish.cancel(signalsId); /* Step 3, cancel the Wish core signals that we had registered when app started */
         }
         finish();
-        startActivity(intent);
+        startActivity(intent); /* Step 4: Start the activity which will go through the steps of the charing scenario. Note that identity is given as Extra to activity.
+         Go now to AuthActivity for next step */
     }
 
     class AppLifecycleListener implements LifecycleObserver {

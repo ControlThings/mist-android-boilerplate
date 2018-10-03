@@ -56,27 +56,25 @@ Registration server and Charging provider(s).
    "4920123412341234", expiry: "09/20", cvc: "123" })
    ```
 
-3. The registration service creates account(s) on the participating
+   The registration service creates account(s) on the participating
    charging provider(s), and adds billing info to them. 
    The charging provider returns somekind of credential(s) (api key).
    The API used for this depends on each charing provider, and is out 
    of scope for the time being.
    (This step will be omitted in the actual implementation)
 
-   
-
-4. When the registration service has succeeded in creating the accounts,
+   When the registration service has succeeded in creating the accounts,
    it knows that the user is legit as it has billing info for the user.
    The Registration service registers any credentials given by the
    charging provider to the Mist/OMI interface of the charging provider,
    associating Wish uid with proprietary credential.
-5. Registration server issues the certificate, and returns it as the
+
+3. Registration server issues certificate, and returns it as the
    return value of the invoke issued by app in step 2.
-   The certificate includes:
-    -the uid & pubkey of user
-    -the uid & signature of the reg. authority
-6. App saves certificate
-7. When user wants to charge, the user uses certificate to "friend
+
+4. App saves certificate, so that it can use it later.
+
+5. When user wants to charge, the user uses certificate to "friend
    request" the charging provider, providing certificate as credential.
    The user gets the "contact info" to the correct charging provider by
    e.g. reading a QR code or by reading NFC tag with telephone.
