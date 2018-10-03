@@ -7,6 +7,7 @@ import android.arch.lifecycle.ProcessLifecycleOwner;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -152,7 +153,6 @@ public class MainActivity extends AppCompatActivity implements AddonReceiver.Rec
         @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
         public void onMoveToBackground() {
             // app moved to background
-
             /* Cancel the signals request */
             if (signalsId != 0) {
                 wish.request.Wish.cancel(signalsId);

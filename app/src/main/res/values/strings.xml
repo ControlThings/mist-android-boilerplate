@@ -2,6 +2,10 @@
     <string name="app_name">Mist Boilerplate</string>
     <string name="edit_identity">Enter a user identity</string>
     <string name="button_add_identity">Save</string>
-    <string name="button_remove">Remove from reg Server</string>
+    <string name="button_forget_reg_server">Forget reg Server</string>
     <string name="button_credit_card">Save</string>
+    <string name="button_qr">qr scanned</string>
+    <string name="button_forget_charging">Forget charging server</string>
+    <string name="button_omi">Send omi request</string>
+    <string name="button_delete_cert">Delete certificate</string>
 </resources>
