@@ -123,6 +123,7 @@ public class AuthActivity extends AppCompatActivity {
         forgetChargingButton.setVisibility(View.GONE);
         omiButton.setVisibility(View.GONE);
 
+        /* Read the saved cert from memory. */
         certificate = readCert();
         if(certificate != null) {
             deleteCertButton.setVisibility(View.VISIBLE);
@@ -224,6 +225,7 @@ public class AuthActivity extends AppCompatActivity {
                 for (Peer peer : list) {
                     if (regServer != null && Arrays.equals(peer.getRuid(), regServer.getUid()) || charging != null && Arrays.equals(peer.getRuid(), charging.getUid())){
 
+                        /* Read the mist.class endpoint on the selected peer and check if it is a registration (eu.biotope-project.reg-service) service or an charging (eu.biotope-project.charging-service) service  */
                               mist.node.request.Control.read(peer, "mist.class", (new Control.ReadCb() {
                                   Peer peer;
 
@@ -346,7 +348,7 @@ public class AuthActivity extends AppCompatActivity {
         omiButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                /* Step 15, the last step. User has pressed on the "send OMI message" button, send the OMI command to the charging service's OMI interface. */
+                /* Step 15, User has pressed on the "send OMI message" button, send the OMI command to the charging service's OMI interface. */
                 mist.node.request.Control.invoke(chargingPeer, "omi", omiMsg, new Control.InvokeCb() {
                     @Override
                     public void cbByte(byte[] value) {
@@ -380,11 +382,13 @@ public class AuthActivity extends AppCompatActivity {
         forgetRegServerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                /* Send a invoke to the registration service so it will remove your identity from it */
                 mist.node.request.Control.invoke(regServerPeer, "forgetUser", new Control.InvokeCb() {
                     @Override
                     public void cbBool(boolean value) {
                         super.cbBool(value);
                         if (value) {
+                            /* Remove the registration identity from your known identities. */
                             wish.request.Identity.remove(regServer.getUid(), new Identity.RemoveCb() {
                                 @Override
                                 public void cb(boolean b) {
@@ -408,11 +412,13 @@ public class AuthActivity extends AppCompatActivity {
         forgetChargingButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                /* Send a invoke to the charging service so it will remove your identity from it */
                 mist.node.request.Control.invoke(chargingPeer, "forgetUser", new Control.InvokeCb() {
                     @Override
                     public void cbBool(boolean value) {
                         super.cbBool(value);
                         if (value) {
+                            /* Remove the charging identity from your known identities. */
                             wish.request.Identity.remove(charging.getUid(), new Identity.RemoveCb() {
                                 @Override
                                 public void cb(boolean b) {
@@ -434,6 +440,8 @@ public class AuthActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
+        /* Step 16, Remember to cancel all signals when they are not needed anymore this also applies to to follow messages "mist.node.request.Control.follow()". */
+
         super.onPause();
         if (wishSignalsId != 0) {
             wish.request.Wish.cancel(wishSignalsId);
@@ -445,7 +453,7 @@ public class AuthActivity extends AppCompatActivity {
 
     private void hideKeyboard() {
         InputMethodManager imm = (InputMethodManager) getSystemService(Activity.INPUT_METHOD_SERVICE);
-        //Find the currently focused view, so we can grab the correct window token from it.
+        /* Find the currently focused view, so we can grab the correct window token from it. */
         View view = getCurrentFocus();
         //If no view currently has focus, create a new one, just so we can grab a window token from it
         if (view == null) {
