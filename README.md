@@ -10,7 +10,7 @@ The example code is licensed under Apache 2.0. For the example code to be useful
 ## Prerequisites
 
 * [Android studio](https://developer.android.com/studio/) 
-* Credentials to Controlthings artifactory server
+* Credentials to Controlthings artifactory server. Please get in touch with ControlThings to obtain them: info@controlthings.fi or +358405166116
 
 For the moment you will need acces to Controlthings Artifactory server, to get the MistApi.
 
