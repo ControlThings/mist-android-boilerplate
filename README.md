@@ -1,9 +1,11 @@
 # Mist android boilerplate
 This is a empty android boilerpalete to start a mist android project. 
 
+Please learn more about the Mist concepts on https://controlthings.atlassian.net/wiki/spaces/MIST/pages/655361/Identity-Based+Communication
+
 ## Licenses
 
-The example code is licensed under Apache 2.0. For the example code to be useful, you will need to have the MistApi aar libraries from ControlThings. These libraries require a valid license from ControlThings Oy Ab so that they can be used.
+The example source code is licensed under Apache 2.0. For the example code to be useful, you will need to have the MistApi aar libraries from ControlThings. These libraries require a valid license from ControlThings Oy Ab so that they can be used.
 
 # Getting Started
 
